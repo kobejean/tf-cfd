@@ -4,7 +4,8 @@ import math
 
 DIM = (240, 600)
 
-velocity = 0.050
+# velocity = 0.070
+velocity = 0.0
 viscocity = 0.020
 
 # useful constants
@@ -44,8 +45,17 @@ for i in range(DIM[0]):
         reli = DIM[0]/2.0 - i;
         relj = DIM[1]/2.0 - j;
         r = math.sqrt(reli*reli + relj*relj)
-        barrier[i][j]  = False#(r < min(DIM[0], DIM[1]) * 0.2)
-        fountain[i][j] = 0.01 if (r < min(DIM[0], DIM[1]) * 0.2) else 0.0
+        barrier[i][j]  = (r < min(DIM[0], DIM[1]) * 0.2)
+        fountain[i][j] = 0.005 if (r < min(DIM[0], DIM[1]) * 0.3 and not barrier[i][j]) else 0.0
+
+# barrierN  = np.roll(barrier , -1, axis=0)					# sites just north of barriers
+# barrierS  = np.roll(barrier ,  1, axis=0)					# sites just south of barriers
+# barrierE  = np.roll(barrier ,  1, axis=1)					# etc.
+# barrierW  = np.roll(barrier , -1, axis=1)
+# barrierNE = np.roll(barrierN,  1, axis=1)
+# barrierNW = np.roll(barrierN, -1, axis=1)
+# barrierSE = np.roll(barrierS,  1, axis=1)
+# barrierSW = np.roll(barrierS, -1, axis=1)
 
 with tf.name_scope('variables') as scope:
     # variables (masked with barrier)
@@ -68,6 +78,8 @@ with tf.name_scope('computed_variables') as scope:
 with tf.name_scope('image') as scope:
     H = tf.fill(DIM, 0.5)
     S = tf.fill(DIM, 1.0)
+    # V = tf.minimum(tf.sqrt(yvel)*3.0, 1.0)
+    # V = tf.minimum(tf.sqrt(xvel)*3.0, 1.0)
     V = tf.minimum(tf.sqrt(speed2)*3.0, 1.0)
     HSV = tf.stack([H,S,V], axis=-1)
     RGB = tf.image.hsv_to_rgb(HSV, "RGB")*(2**8-1)
@@ -85,7 +97,7 @@ def collide():
         one36thn = one36th * n
         vx = (nE + nNE + nSE - nW - nNW - nSW) / n
         vx = tf.where(tf.greater(n, zeroes), vx, zeroes)
-        vy = (nN + nNE + nNW - nS - nSE - nSW) / n
+        vy = (nS + nSE + nSW - nN - nNE - nNW) / n
         vy = tf.where(tf.greater(n, zeroes), vy, zeroes)
 
         vx3 = 3 * vx
@@ -99,22 +111,23 @@ def collide():
         tmp_n0  = omega * (four9ths*n * (1                              - v215) - n0 )
         tmp_nE  = omega * (   one9thn * (1 + vx3       + 4.5*vx2        - v215) - nE )
         tmp_nW  = omega * (   one9thn * (1 - vx3       + 4.5*vx2        - v215) - nW )
-        tmp_nN  = omega * (   one9thn * (1 + vy3       + 4.5*vy2        - v215) - nN )
-        tmp_nS  = omega * (   one9thn * (1 - vy3       + 4.5*vy2        - v215) - nS )
-        tmp_nNE = omega * (  one36thn * (1 + vx3 + vy3 + 4.5*(v2+vxvy2) - v215) - nNE)
-        tmp_nNW = omega * (  one36thn * (1 - vx3 + vy3 + 4.5*(v2-vxvy2) - v215) - nNW)
-        tmp_nSE = omega * (  one36thn * (1 + vx3 - vy3 + 4.5*(v2-vxvy2) - v215) - nSE)
-        tmp_nSW = omega * (  one36thn * (1 - vx3 - vy3 + 4.5*(v2+vxvy2) - v215) - nSW)
+        tmp_nN  = omega * (   one9thn * (1 - vy3       + 4.5*vy2        - v215) - nN )
+        tmp_nS  = omega * (   one9thn * (1 + vy3       + 4.5*vy2        - v215) - nS )
+        tmp_nNE = omega * (  one36thn * (1 + vx3 - vy3 + 4.5*(v2-vxvy2) - v215) - nNE)
+        tmp_nNW = omega * (  one36thn * (1 - vx3 - vy3 + 4.5*(v2+vxvy2) - v215) - nNW)
+        tmp_nSE = omega * (  one36thn * (1 + vx3 + vy3 + 4.5*(v2+vxvy2) - v215) - nSE)
+        tmp_nSW = omega * (  one36thn * (1 - vx3 + vy3 + 4.5*(v2-vxvy2) - v215) - nSW)
 
-        tmp_n0  = tf.where(barrier, zeroes, tmp_n0) + fountain * four9ths
-        tmp_nE  = tf.where(barrier, zeroes, tmp_nE) + fountain * one9th
-        tmp_nW  = tf.where(barrier, zeroes, tmp_nW) + fountain * one9th
-        tmp_nN  = tf.where(barrier, zeroes, tmp_nN) + fountain * one9th
-        tmp_nS  = tf.where(barrier, zeroes, tmp_nS) + fountain * one9th
-        tmp_nNE = tf.where(barrier, zeroes, tmp_nNE) + fountain * one36th
-        tmp_nSE = tf.where(barrier, zeroes, tmp_nSE) + fountain * one36th
-        tmp_nNW = tf.where(barrier, zeroes, tmp_nNW) + fountain * one36th
-        tmp_nSW = tf.where(barrier, zeroes, tmp_nSW) + fountain * one36th
+        # tmp_n0  = tf.where(barrier, zeroes, tmp_n0)  # + fountain * four9ths
+        # tmp_nE  = tf.where(barrier, zeroes, tmp_nE)  # + fountain * one9th
+        # tmp_nW  = tf.where(barrier, zeroes, tmp_nW)  # + fountain * one9th
+        # tmp_nN  = tf.where(barrier, zeroes, tmp_nN)  # + fountain * one9th
+        # tmp_nS  = tf.where(barrier, zeroes, tmp_nS)  # + fountain * one9th
+        # tmp_nNE = tf.where(barrier, zeroes, tmp_nNE) # + fountain * one36th
+        # tmp_nSE = tf.where(barrier, zeroes, tmp_nSE) # + fountain * one36th
+        # tmp_nNW = tf.where(barrier, zeroes, tmp_nNW) # + fountain * one36th
+        # tmp_nSW = tf.where(barrier, zeroes, tmp_nSW) # + fountain * one36th
+
 
         ops = tf.group( tf.assign(density , n ),
                         tf.assign(xvel    , vx),
@@ -124,7 +137,7 @@ def collide():
                         tf.assign_add(nE , tmp_nE ),
                         tf.assign_add(nW , tmp_nW ),
                         tf.assign_add(nN , tmp_nN ),
-                        tf.assign_add(nE , tmp_nS ),
+                        tf.assign_add(nS , tmp_nS ),
                         tf.assign_add(nNE, tmp_nNE),
                         tf.assign_add(nSE, tmp_nSE),
                         tf.assign_add(nNW, tmp_nNW),
@@ -208,12 +221,23 @@ def stream():
         tmp_nSW = tf.concat([pad_nSWy, tmp_nSW , pad_nSWy], 0)
 
 
+        tmp_n0  = tmp_n0  + fountain * four9ths
+        tmp_nE  = tmp_nE  + fountain * one9th
+        tmp_nW  = tmp_nW  + fountain * one9th
+        tmp_nN  = tmp_nN  + fountain * one9th
+        tmp_nS  = tmp_nS  + fountain * one9th
+        tmp_nNE = tmp_nNE + fountain * one36th
+        tmp_nSE = tmp_nSE + fountain * one36th
+        tmp_nNW = tmp_nNW + fountain * one36th
+        tmp_nSW = tmp_nSW + fountain * one36th
+
+
 
         ops = tf.group( tf.assign(n0 , tmp_n0 ),
                         tf.assign(nE , tmp_nE ),
                         tf.assign(nW , tmp_nW ),
                         tf.assign(nN , tmp_nN ),
-                        tf.assign(nE , tmp_nS ),
+                        tf.assign(nS , tmp_nS ),
                         tf.assign(nNE, tmp_nNE),
                         tf.assign(nSE, tmp_nSE),
                         tf.assign(nNW, tmp_nNW),
@@ -222,20 +246,30 @@ def stream():
 
 def bounce():
     with tf.name_scope('bounce') as scope:
-        dif_nE  = tf.where(tf.logical_and(barrier, tf.greater(nW ,zeroes)), nW , zeroes)
-        dif_nW  = tf.where(tf.logical_and(barrier, tf.greater(nE ,zeroes)), nE , zeroes)
-        dif_nN  = tf.where(tf.logical_and(barrier, tf.greater(nS ,zeroes)), nS , zeroes)
-        dif_nS  = tf.where(tf.logical_and(barrier, tf.greater(nN ,zeroes)), nN , zeroes)
-        dif_nNE = tf.where(tf.logical_and(barrier, tf.greater(nSW,zeroes)), nSW, zeroes)
-        dif_nSE = tf.where(tf.logical_and(barrier, tf.greater(nNW,zeroes)), nNW, zeroes)
-        dif_nNW = tf.where(tf.logical_and(barrier, tf.greater(nSE,zeroes)), nSE, zeroes)
-        dif_nSW = tf.where(tf.logical_and(barrier, tf.greater(nNE,zeroes)), nNE, zeroes)
+
+        bool_nW  = tf.logical_and(barrier, tf.greater(nW ,zeroes))
+        bool_nE  = tf.logical_and(barrier, tf.greater(nE ,zeroes))
+        bool_nS  = tf.logical_and(barrier, tf.greater(nS ,zeroes))
+        bool_nN  = tf.logical_and(barrier, tf.greater(nN ,zeroes))
+        bool_nSW = tf.logical_and(barrier, tf.greater(nSW,zeroes))
+        bool_nNW = tf.logical_and(barrier, tf.greater(nNW,zeroes))
+        bool_nSE = tf.logical_and(barrier, tf.greater(nSE,zeroes))
+        bool_nNE = tf.logical_and(barrier, tf.greater(nNE,zeroes))
+
+        dif_nE  = tf.where(bool_nW , nW , zeroes)
+        dif_nW  = tf.where(bool_nE , nE , zeroes)
+        dif_nN  = tf.where(bool_nS , nS , zeroes)
+        dif_nS  = tf.where(bool_nN , nN , zeroes)
+        dif_nNE = tf.where(bool_nSW, nSW, zeroes)
+        dif_nSE = tf.where(bool_nNW, nNW, zeroes)
+        dif_nNW = tf.where(bool_nSE, nSE, zeroes)
+        dif_nSW = tf.where(bool_nNE, nNE, zeroes)
 
         # slice sizes
         Sx  = (DIM[0]  , DIM[1]-1)
         Sy  = (DIM[0]-2, DIM[1]  )
         Sxy = (DIM[0]-2, DIM[1]-1)
-        # dif_n0  = tf.slice(dif_n0 , [1,0], Sy )
+        # dif_n0  = tf.slice(n0 , [1,0], Sy)
         dif_nE  = tf.slice(dif_nE , [1,0], Sxy)
         dif_nW  = tf.slice(dif_nW , [1,1], Sxy)
         dif_nN  = tf.slice(dif_nN , [2,0], Sy )
@@ -250,7 +284,6 @@ def bounce():
         Px = (DIM[0]-2, 1       )
         PY = (1       , DIM[1]  )
         Py = (1       , DIM[1]-1)
-
 
         # pad_n0x  = tf.fill(Px, 0.0)
         # pad_n0y  = tf.fill(PY, 0.0)
@@ -306,23 +339,32 @@ def bounce():
         dif_nSW = tf.concat([dif_nSW , pad_nSWx], 1)
         dif_nSW = tf.concat([pad_nSWy, dif_nSW , pad_nSWy], 0)
 
-        dif_nE  = tf.where(barrier, zeroes, dif_nE)
-        dif_nW  = tf.where(barrier, zeroes, dif_nW)
-        dif_nN  = tf.where(barrier, zeroes, dif_nN)
-        dif_nS  = tf.where(barrier, zeroes, dif_nS)
-        dif_nNE = tf.where(barrier, zeroes, dif_nNE)
-        dif_nSE = tf.where(barrier, zeroes, dif_nSE)
-        dif_nNW = tf.where(barrier, zeroes, dif_nNW)
-        dif_nSW = tf.where(barrier, zeroes, dif_nSW)
+        tmp_nE  = tf.where(barrier, zeroes, nE  + dif_nE )
+        tmp_nW  = tf.where(barrier, zeroes, nW  + dif_nW )
+        tmp_nN  = tf.where(barrier, zeroes, nN  + dif_nN )
+        tmp_nS  = tf.where(barrier, zeroes, nS  + dif_nS )
+        tmp_nNE = tf.where(barrier, zeroes, nNE + dif_nNE)
+        tmp_nSE = tf.where(barrier, zeroes, nSE + dif_nSE)
+        tmp_nNW = tf.where(barrier, zeroes, nNW + dif_nNW)
+        tmp_nSW = tf.where(barrier, zeroes, nSW + dif_nSW)
 
-        ops = tf.group( tf.assign_add(nE , dif_nE ),
-                        tf.assign_add(nW , dif_nW ),
-                        tf.assign_add(nN , dif_nN ),
-                        tf.assign_add(nE , dif_nS ),
-                        tf.assign_add(nNE, dif_nNE),
-                        tf.assign_add(nSE, dif_nSE),
-                        tf.assign_add(nNW, dif_nNW),
-                        tf.assign_add(nSW, dif_nSW))
+        # tmp_nE  = tf.where(bool_nE , zeroes, dif_nE )
+        # tmp_nW  = tf.where(bool_nW , zeroes, dif_nW )
+        # tmp_nN  = tf.where(bool_nN , zeroes, dif_nN )
+        # tmp_nS  = tf.where(bool_nS , zeroes, dif_nS )
+        # tmp_nNE = tf.where(bool_nNE, zeroes, dif_nNE)
+        # tmp_nSE = tf.where(bool_nSE, zeroes, dif_nSE)
+        # tmp_nNW = tf.where(bool_nNW, zeroes, dif_nNW)
+        # tmp_nSW = tf.where(bool_nSW, zeroes, dif_nSW)
+
+        ops = tf.group( tf.assign(nE , tmp_nE ),
+                        tf.assign(nW , tmp_nW ),
+                        tf.assign(nN , tmp_nN ),
+                        tf.assign(nS , tmp_nS ),
+                        tf.assign(nNE, tmp_nNE),
+                        tf.assign(nSE, tmp_nSE),
+                        tf.assign(nNW, tmp_nNW),
+                        tf.assign(nSW, tmp_nSW))
     return ops
 
 
@@ -336,7 +378,7 @@ with tf.Session() as sess:
     sess.run(init)
     writer = tf.summary.FileWriter("log/graph", sess.graph)
 
-    for i in range(10000):
+    for i in range(1000):
         # print("---- STEP ----")
         sess.run(collide_step)
         sess.run(stream_step)
@@ -344,11 +386,11 @@ with tf.Session() as sess:
 
         # result = sess.run(speed2)
         # print(result)
-        if i%10 == 0:
+        if i % 1 == 0:
             result = sess.run(RGB)
             print(result)
             # writer.add_summary(result)
             image = sess.run(encoded_image)
-            outpath = "cfd_{0:0>5}.png".format(i)
+            outpath = "cfd_{0:0>10}.png".format(i)
             with open(outpath, 'wb') as f:
                 f.write(image)
