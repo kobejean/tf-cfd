@@ -7,12 +7,15 @@ if not os.path.exists("output"):
     os.makedirs("output")
 
 LOGGING = False
-PERIOD = 100
+PERIOD = 250
 
 
-DIM = (240, 600)
+# DIM = (240, 600)
+# DIM = (480, 1200)
 # DIM = (1600, 2560) # Okar dimentions
+DIM = (1024, 2560) # Okar widescreen
 # DIM = (2160, 3840) # 4k
+# DIM = (1536, 3840) # widescreen 4k
 
 velocity = 0.050
 viscocity = 0.020
@@ -77,12 +80,12 @@ with tf.name_scope('computed_variables') as scope:
 with tf.name_scope('image') as scope:
     H = tf.fill(DIM, 0.5)
     S = tf.fill(DIM, 1.0)
-    # V = tf.minimum(tf.sqrt(yvel)*3.0, 1.0)
-    # V = tf.minimum(tf.sqrt(xvel)*3.0, 1.0)
-    V = tf.minimum(tf.sqrt(speed2)*3.0, 1.0)
+    # V = tf.minimum(tf.sqrt(yvel)*6.0, 1.0)
+    # V = tf.minimum(tf.sqrt(xvel)*6.0, 1.0)
+    V = tf.minimum(tf.sqrt(speed2)*8.0, 1.0)
     HSV = tf.stack([H,S,V], axis=-1)
-    RGB = tf.image.hsv_to_rgb(HSV, "RGB")*(2**8-1)
-    RGB = tf.cast(RGB, dtype=tf.uint8)
+    RGB = tf.image.hsv_to_rgb(HSV, "RGB")*(2**16-1)
+    RGB = tf.cast(RGB, dtype=tf.uint16)
     encoded_image = tf.image.encode_png(RGB)
 
 
@@ -359,7 +362,7 @@ with tf.Session() as sess:
             outpath = "output/cfd_{0:0>10}.png".format(t//PERIOD)
 
             def write(image, outpath):
-                with open(outpath, 'wb+') as f:
+                with open(outpath, 'wb') as f:
                     f.write(image)
             worker = Thread(target=write, args=(image, outpath,))
             worker.setDaemon(True)
