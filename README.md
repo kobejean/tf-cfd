@@ -1,7 +1,7 @@
 # tf-cfd
 Computational fluid dynamics with tensorflow.
 <p align="center">
-    ![alt](docs/media/screenshot.png)
+    <img src="docs/media/screenshot.png"/>
 </p>
 ### Dependancies
 - tensorflow (1.2): https://www.tensorflow.org
