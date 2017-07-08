@@ -1,15 +1,27 @@
+#
+#  cfd.py
+#  tf-cfd
+#
+#  Created by Jean Flaherty on 7/1/17.
+#  Copyright © 2017 kobejean. All rights reserved.
+#
+"""
+script that runs cfd and produces a sequence of images animating the simulation
+"""
+
 import tensorflow as tf
 import numpy as np
 import math, os
 from threading import Thread
 
+# create output directory
 if not os.path.exists("output"):
     os.makedirs("output")
 
 LOGGING = False
 PERIOD = 250
 
-
+# # Dimensions (height x width)
 # DIM = (240, 600)
 # DIM = (480, 1200)
 # DIM = (1600, 2560) # Okar dimentions
@@ -31,23 +43,7 @@ four9ths = 4.0 / 9.0
 one9th = 1.0 / 9.0
 one36th = 1.0 / 36.0
 
-# variable initial values
-n0  = tf.fill(DIM, four9ths * (1.0 - 1.5*v*v)    )
-nE  = tf.fill(DIM, one9th * (1.0 + 3*v + 3*v*v)  )
-nW  = tf.fill(DIM, one9th * (1.0 - 3*v + 3*v*v)  )
-nN  = tf.fill(DIM, one9th * (1.0 - 1.5*v*v)      )
-nS  = tf.fill(DIM, one9th * (1.0 - 1.5*v*v)      )
-nNE = tf.fill(DIM, one36th * (1.0 + 3*v + 3*v*v) )
-nSE = tf.fill(DIM, one36th * (1.0 + 3*v + 3*v*v) )
-nNW = tf.fill(DIM, one36th * (1.0 - 3*v + 3*v*v) )
-nSW = tf.fill(DIM, one36th * (1.0 - 3*v + 3*v*v) )
-
-# computed variables
-density = tf.fill(DIM, 1.0 )
-xvel    = tf.fill(DIM, v   )
-yvel    = tf.fill(DIM, 0.0 )
-speed2  = tf.fill(DIM, v*v )
-
+# circle barrier in the middle
 barrier  = np.empty(shape=DIM, dtype=bool)
 # fountain = np.empty(shape=DIM, dtype=float)
 for i in range(DIM[0]):
@@ -60,6 +56,16 @@ for i in range(DIM[0]):
 
 
 with tf.name_scope('variables') as scope:
+    # variable initial values
+    n0  = tf.fill(DIM, four9ths * (1.0 - 1.5*v*v)    )
+    nE  = tf.fill(DIM, one9th * (1.0 + 3*v + 3*v*v)  )
+    nW  = tf.fill(DIM, one9th * (1.0 - 3*v + 3*v*v)  )
+    nN  = tf.fill(DIM, one9th * (1.0 - 1.5*v*v)      )
+    nS  = tf.fill(DIM, one9th * (1.0 - 1.5*v*v)      )
+    nNE = tf.fill(DIM, one36th * (1.0 + 3*v + 3*v*v) )
+    nSE = tf.fill(DIM, one36th * (1.0 + 3*v + 3*v*v) )
+    nNW = tf.fill(DIM, one36th * (1.0 - 3*v + 3*v*v) )
+    nSW = tf.fill(DIM, one36th * (1.0 - 3*v + 3*v*v) )
     # variables (masked with barrier)
     n0  = tf.Variable(tf.where(barrier, zeroes, n0)  , name="n0" )
     nE  = tf.Variable(tf.where(barrier, zeroes, nE)  , name="nE" )
@@ -72,6 +78,12 @@ with tf.name_scope('variables') as scope:
     nSW = tf.Variable(tf.where(barrier, zeroes, nSW) , name="nSW")
 
 with tf.name_scope('computed_variables') as scope:
+    # computed variables
+    density = tf.fill(DIM, 1.0 )
+    xvel    = tf.fill(DIM, v   )
+    yvel    = tf.fill(DIM, 0.0 )
+    speed2  = tf.fill(DIM, v*v )
+    # computer variables (masked with barrier)
     density = tf.Variable(tf.where(barrier, zeroes, density) , name="density" )
     xvel    = tf.Variable(tf.where(barrier, zeroes, xvel)    , name="xvel"    )
     yvel    = tf.Variable(tf.where(barrier, zeroes, yvel)    , name="yvel"    )
@@ -89,6 +101,7 @@ with tf.name_scope('image') as scope:
     encoded_image = tf.image.encode_png(RGB)
 
 
+# distribute the moving densities
 def collide():
     with tf.name_scope('collide') as scope:
         omega = 1 / (3*viscocity + 0.5)
@@ -134,6 +147,7 @@ def collide():
                         tf.assign_add(nSW, tmp_nSW))
     return ops
 
+# stream densities
 def stream():
     with tf.name_scope('stream') as scope:
         # set all density values at barrier sites to 0 before stream
@@ -234,6 +248,7 @@ def stream():
                         tf.assign(nSW, tmp_nSW))
     return ops
 
+# bounce off the barrier (flip direction)
 def bounce():
     with tf.name_scope('bounce') as scope:
 
@@ -340,7 +355,7 @@ def bounce():
     return ops
 
 
-
+# three steps per time step
 collide_step = collide()
 stream_step = stream()
 bounce_step = bounce()
