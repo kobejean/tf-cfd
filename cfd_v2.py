@@ -14,7 +14,8 @@ import numpy as np
 import math, os
 from threading import Thread
 
-manip = tf.load_op_library('user_ops/roll_op.so')
+# if using older version of tensorflow < 1.6.0
+# manip = tf.load_op_library('user_ops/roll_op.so')
 
 # create output directory
 if not os.path.exists("output"):
@@ -165,15 +166,15 @@ def stream():
         tmp_nNW = tf.where(barrier, zeroes, nNW)
         tmp_nSW = tf.where(barrier, zeroes, nSW)
 
-        # tmp_n0  = manip.custom_roll(tmp_n0 , shift=[ 0, 0], axis=[0,1])
-        tmp_nE  = manip.custom_roll(tmp_nE , shift=[ 0, 1], axis=[0,1])
-        tmp_nW  = manip.custom_roll(tmp_nW , shift=[ 0,-1], axis=[0,1])
-        tmp_nN  = manip.custom_roll(tmp_nN , shift=[-1, 0], axis=[0,1])
-        tmp_nS  = manip.custom_roll(tmp_nS , shift=[ 1, 0], axis=[0,1])
-        tmp_nNE = manip.custom_roll(tmp_nNE, shift=[-1, 1], axis=[0,1])
-        tmp_nSE = manip.custom_roll(tmp_nSE, shift=[ 1, 1], axis=[0,1])
-        tmp_nNW = manip.custom_roll(tmp_nNW, shift=[-1,-1], axis=[0,1])
-        tmp_nSW = manip.custom_roll(tmp_nSW, shift=[ 1,-1], axis=[0,1])
+        # tmp_n0  = tf.manip.roll(tmp_n0 , shift=[ 0, 0], axis=[0,1])
+        tmp_nE  = tf.manip.roll(tmp_nE , shift=[ 0, 1], axis=[0,1])
+        tmp_nW  = tf.manip.roll(tmp_nW , shift=[ 0,-1], axis=[0,1])
+        tmp_nN  = tf.manip.roll(tmp_nN , shift=[-1, 0], axis=[0,1])
+        tmp_nS  = tf.manip.roll(tmp_nS , shift=[ 1, 0], axis=[0,1])
+        tmp_nNE = tf.manip.roll(tmp_nNE, shift=[-1, 1], axis=[0,1])
+        tmp_nSE = tf.manip.roll(tmp_nSE, shift=[ 1, 1], axis=[0,1])
+        tmp_nNW = tf.manip.roll(tmp_nNW, shift=[-1,-1], axis=[0,1])
+        tmp_nSW = tf.manip.roll(tmp_nSW, shift=[ 1,-1], axis=[0,1])
 
         ops = tf.group( tf.assign(n0 , tmp_n0 ),
                         tf.assign(nE , tmp_nE ),
@@ -267,14 +268,14 @@ def bounce():
         dif_nNW = tf.where(bool_nSE, nSE, zeroes)
         dif_nSW = tf.where(bool_nNE, nNE, zeroes)
 
-        dif_nE  = manip.custom_roll(dif_nE , shift=[ 0, 1], axis=[0,1])
-        dif_nW  = manip.custom_roll(dif_nW , shift=[ 0,-1], axis=[0,1])
-        dif_nN  = manip.custom_roll(dif_nN , shift=[-1, 0], axis=[0,1])
-        dif_nS  = manip.custom_roll(dif_nS , shift=[ 1, 0], axis=[0,1])
-        dif_nNE = manip.custom_roll(dif_nNE, shift=[-1, 1], axis=[0,1])
-        dif_nSE = manip.custom_roll(dif_nSE, shift=[ 1, 1], axis=[0,1])
-        dif_nNW = manip.custom_roll(dif_nNW, shift=[-1,-1], axis=[0,1])
-        dif_nSW = manip.custom_roll(dif_nSW, shift=[ 1,-1], axis=[0,1])
+        dif_nE  = tf.manip.roll(dif_nE , shift=[ 0, 1], axis=[0,1])
+        dif_nW  = tf.manip.roll(dif_nW , shift=[ 0,-1], axis=[0,1])
+        dif_nN  = tf.manip.roll(dif_nN , shift=[-1, 0], axis=[0,1])
+        dif_nS  = tf.manip.roll(dif_nS , shift=[ 1, 0], axis=[0,1])
+        dif_nNE = tf.manip.roll(dif_nNE, shift=[-1, 1], axis=[0,1])
+        dif_nSE = tf.manip.roll(dif_nSE, shift=[ 1, 1], axis=[0,1])
+        dif_nNW = tf.manip.roll(dif_nNW, shift=[-1,-1], axis=[0,1])
+        dif_nSW = tf.manip.roll(dif_nSW, shift=[ 1,-1], axis=[0,1])
 
         ops = tf.group( tf.assign_add(nE , dif_nE ),
                         tf.assign_add(nW , dif_nW ),
