@@ -19,16 +19,16 @@ if not os.path.exists("output"):
     os.makedirs("output")
 
 LOGGING = False
-PERIOD = 1000
+PERIOD = 100
 
 # # Dimensions (height x width)
-# DIM = (240, 600)
+DIM = (240, 600)
 # DIM = (480, 1200)
 # DIM = (1600, 2560) # Okar dimentions
 # DIM = (1024, 2560) # Okar widescreen
 # DIM = (2160, 3840) # 4k
 # DIM = (1536, 3840) # widescreen 4k
-DIM = (1920, 4800)
+# DIM = (1920, 4800)
 
 velocity = 0.050
 viscocity = 0.020

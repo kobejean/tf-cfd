@@ -14,6 +14,8 @@ import numpy as np
 import math, os
 from threading import Thread
 
+print("INITIALIZING...")
+
 # if using older version of tensorflow < 1.6.0
 # manip = tf.load_op_library('user_ops/roll_op.so')
 
@@ -22,16 +24,16 @@ if not os.path.exists("output"):
     os.makedirs("output")
 
 LOGGING = False
-PERIOD = 1000
+PERIOD = 100
 
 # # Dimensions (height x width)
-# DIM = (240, 600)
+DIM = (240, 600)
 # DIM = (480, 1200)
 # DIM = (1600, 2560) # Okar dimentions
 # DIM = (1024, 2560) # Okar widescreen
 # DIM = (2160, 3840) # 4k
 # DIM = (1536, 3840) # widescreen 4k
-DIM = (1920, 4800)
+# DIM = (1920, 4800)
 
 velocity = 0.050
 viscocity = 0.020
@@ -156,35 +158,24 @@ def stream():
     with tf.name_scope('stream') as scope:
         # set all density values at barrier sites to 0 before stream
         # density values that flow into the barrier will be used for bounce
-        tmp_n0  = tf.where(barrier, zeroes, n0 )
-        tmp_nE  = tf.where(barrier, zeroes, nE )
-        tmp_nW  = tf.where(barrier, zeroes, nW )
-        tmp_nN  = tf.where(barrier, zeroes, nN )
-        tmp_nS  = tf.where(barrier, zeroes, nS )
-        tmp_nNE = tf.where(barrier, zeroes, nNE)
-        tmp_nSE = tf.where(barrier, zeroes, nSE)
-        tmp_nNW = tf.where(barrier, zeroes, nNW)
-        tmp_nSW = tf.where(barrier, zeroes, nSW)
 
-        # tmp_n0  = tf.manip.roll(tmp_n0 , shift=[ 0, 0], axis=[0,1])
-        tmp_nE  = tf.manip.roll(tmp_nE , shift=[ 0, 1], axis=[0,1])
-        tmp_nW  = tf.manip.roll(tmp_nW , shift=[ 0,-1], axis=[0,1])
-        tmp_nN  = tf.manip.roll(tmp_nN , shift=[-1, 0], axis=[0,1])
-        tmp_nS  = tf.manip.roll(tmp_nS , shift=[ 1, 0], axis=[0,1])
-        tmp_nNE = tf.manip.roll(tmp_nNE, shift=[-1, 1], axis=[0,1])
-        tmp_nSE = tf.manip.roll(tmp_nSE, shift=[ 1, 1], axis=[0,1])
-        tmp_nNW = tf.manip.roll(tmp_nNW, shift=[-1,-1], axis=[0,1])
-        tmp_nSW = tf.manip.roll(tmp_nSW, shift=[ 1,-1], axis=[0,1])
+        tmp_nE  = tf.manip.roll(nE , shift=[ 0, 1], axis=[0,1])
+        tmp_nW  = tf.manip.roll(nW , shift=[ 0,-1], axis=[0,1])
+        tmp_nN  = tf.manip.roll(nN , shift=[-1, 0], axis=[0,1])
+        tmp_nS  = tf.manip.roll(nS , shift=[ 1, 0], axis=[0,1])
+        tmp_nNE = tf.manip.roll(nNE, shift=[-1, 1], axis=[0,1])
+        tmp_nSE = tf.manip.roll(nSE, shift=[ 1, 1], axis=[0,1])
+        tmp_nNW = tf.manip.roll(nNW, shift=[-1,-1], axis=[0,1])
+        tmp_nSW = tf.manip.roll(nSW, shift=[ 1,-1], axis=[0,1])
 
-        ops = tf.group( tf.assign(n0 , tmp_n0 ),
-                        tf.assign(nE , tmp_nE ),
-                        tf.assign(nW , tmp_nW ),
-                        tf.assign(nN , tmp_nN ),
-                        tf.assign(nS , tmp_nS ),
-                        tf.assign(nNE, tmp_nNE),
-                        tf.assign(nSE, tmp_nSE),
-                        tf.assign(nNW, tmp_nNW),
-                        tf.assign(nSW, tmp_nSW))
+        ops = tf.group(tf.assign(nE , tmp_nE ),
+                       tf.assign(nW , tmp_nW ),
+                       tf.assign(nN , tmp_nN ),
+                       tf.assign(nS , tmp_nS ),
+                       tf.assign(nNE, tmp_nNE),
+                       tf.assign(nSE, tmp_nSE),
+                       tf.assign(nNW, tmp_nNW),
+                       tf.assign(nSW, tmp_nSW))
     return ops
 
 # add force to stream
@@ -250,41 +241,52 @@ def force():
 # bounce off the barrier (flip direction)
 def bounce():
     with tf.name_scope('bounce') as scope:
-        bool_nW  = tf.logical_and(barrier, tf.greater(nW ,zeroes))
-        bool_nE  = tf.logical_and(barrier, tf.greater(nE ,zeroes))
-        bool_nS  = tf.logical_and(barrier, tf.greater(nS ,zeroes))
-        bool_nN  = tf.logical_and(barrier, tf.greater(nN ,zeroes))
-        bool_nSW = tf.logical_and(barrier, tf.greater(nSW,zeroes))
-        bool_nNW = tf.logical_and(barrier, tf.greater(nNW,zeroes))
-        bool_nSE = tf.logical_and(barrier, tf.greater(nSE,zeroes))
-        bool_nNE = tf.logical_and(barrier, tf.greater(nNE,zeroes))
+        not_barrier = tf.logical_not(barrier)
 
-        dif_nE  = tf.where(bool_nW , nW , zeroes)
-        dif_nW  = tf.where(bool_nE , nE , zeroes)
-        dif_nN  = tf.where(bool_nS , nS , zeroes)
-        dif_nS  = tf.where(bool_nN , nN , zeroes)
-        dif_nNE = tf.where(bool_nSW, nSW, zeroes)
-        dif_nSE = tf.where(bool_nNW, nNW, zeroes)
-        dif_nNW = tf.where(bool_nSE, nSE, zeroes)
-        dif_nSW = tf.where(bool_nNE, nNE, zeroes)
+        bool_nE  = tf.manip.roll(not_barrier, shift=[ 0, 1], axis=[0,1])
+        bool_nW  = tf.manip.roll(not_barrier, shift=[ 0,-1], axis=[0,1])
+        bool_nN  = tf.manip.roll(not_barrier, shift=[-1, 0], axis=[0,1])
+        bool_nS  = tf.manip.roll(not_barrier, shift=[ 1, 0], axis=[0,1])
+        bool_nNE = tf.manip.roll(not_barrier, shift=[-1, 1], axis=[0,1])
+        bool_nSE = tf.manip.roll(not_barrier, shift=[ 1, 1], axis=[0,1])
+        bool_nNW = tf.manip.roll(not_barrier, shift=[-1,-1], axis=[0,1])
+        bool_nSW = tf.manip.roll(not_barrier, shift=[ 1,-1], axis=[0,1])
 
-        dif_nE  = tf.manip.roll(dif_nE , shift=[ 0, 1], axis=[0,1])
-        dif_nW  = tf.manip.roll(dif_nW , shift=[ 0,-1], axis=[0,1])
-        dif_nN  = tf.manip.roll(dif_nN , shift=[-1, 0], axis=[0,1])
-        dif_nS  = tf.manip.roll(dif_nS , shift=[ 1, 0], axis=[0,1])
-        dif_nNE = tf.manip.roll(dif_nNE, shift=[-1, 1], axis=[0,1])
-        dif_nSE = tf.manip.roll(dif_nSE, shift=[ 1, 1], axis=[0,1])
-        dif_nNW = tf.manip.roll(dif_nNW, shift=[-1,-1], axis=[0,1])
-        dif_nSW = tf.manip.roll(dif_nSW, shift=[ 1,-1], axis=[0,1])
+        bool_nE  = tf.logical_and(bool_nE , barrier)
+        bool_nW  = tf.logical_and(bool_nW , barrier)
+        bool_nN  = tf.logical_and(bool_nN , barrier)
+        bool_nS  = tf.logical_and(bool_nS , barrier)
+        bool_nNE = tf.logical_and(bool_nNE, barrier)
+        bool_nSE = tf.logical_and(bool_nSE, barrier)
+        bool_nNW = tf.logical_and(bool_nNW, barrier)
+        bool_nSW = tf.logical_and(bool_nSW, barrier)
 
-        ops = tf.group( tf.assign_add(nE , dif_nE ),
-                        tf.assign_add(nW , dif_nW ),
-                        tf.assign_add(nN , dif_nN ),
-                        tf.assign_add(nS , dif_nS ),
-                        tf.assign_add(nNE, dif_nNE),
-                        tf.assign_add(nSE, dif_nSE),
-                        tf.assign_add(nNW, dif_nNW),
-                        tf.assign_add(nSW, dif_nSW))
+        bounce_nE  = tf.where(bool_nW , nW , zeroes)
+        bounce_nW  = tf.where(bool_nE , nE , zeroes)
+        bounce_nN  = tf.where(bool_nS , nS , zeroes)
+        bounce_nS  = tf.where(bool_nN , nN , zeroes)
+        bounce_nNE = tf.where(bool_nSW, nSW, zeroes)
+        bounce_nSE = tf.where(bool_nNW, nNW, zeroes)
+        bounce_nNW = tf.where(bool_nSE, nSE, zeroes)
+        bounce_nSW = tf.where(bool_nNE, nNE, zeroes)
+
+        bounce_nE  = tf.manip.roll(bounce_nE , shift=[ 0, 1], axis=[0,1])
+        bounce_nW  = tf.manip.roll(bounce_nW , shift=[ 0,-1], axis=[0,1])
+        bounce_nN  = tf.manip.roll(bounce_nN , shift=[-1, 0], axis=[0,1])
+        bounce_nS  = tf.manip.roll(bounce_nS , shift=[ 1, 0], axis=[0,1])
+        bounce_nNE = tf.manip.roll(bounce_nNE, shift=[-1, 1], axis=[0,1])
+        bounce_nSE = tf.manip.roll(bounce_nSE, shift=[ 1, 1], axis=[0,1])
+        bounce_nNW = tf.manip.roll(bounce_nNW, shift=[-1,-1], axis=[0,1])
+        bounce_nSW = tf.manip.roll(bounce_nSW, shift=[ 1,-1], axis=[0,1])
+
+        ops = tf.group( tf.assign_add(nE , bounce_nE ),
+                        tf.assign_add(nW , bounce_nW ),
+                        tf.assign_add(nN , bounce_nN ),
+                        tf.assign_add(nS , bounce_nS ),
+                        tf.assign_add(nNE, bounce_nNE),
+                        tf.assign_add(nSE, bounce_nSE),
+                        tf.assign_add(nNW, bounce_nNW),
+                        tf.assign_add(nSW, bounce_nSW))
     return ops
 
 
@@ -292,11 +294,10 @@ def bounce():
 def time():
     with tf.name_scope('time_step') as scope:
         collide_step = collide()
-        with tf.control_dependencies([collide_step]):
+        force_step = force()
+        with tf.control_dependencies([collide_step, force_step]):
             stream_step = stream()
         with tf.control_dependencies([stream_step]):
-            force_step = force()
-        with tf.control_dependencies([force_step]):
             bounce_step = bounce()
     return bounce_step
 

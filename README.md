@@ -5,7 +5,7 @@ Computational fluid dynamics with tensorflow.
 </p>
 
 ### Dependancies
-- tensorflow (1.2): https://www.tensorflow.org
+- tensorflow (nightly build or 1.6.0): https://www.tensorflow.org
 - ffmpeg: https://www.ffmpeg.org/download.html
 
 ### Usage
