@@ -1,5 +1,8 @@
 # tf-cfd
 Computational fluid dynamics with tensorflow.
+
+**Note: This is just an experimental undergraduate project and may not be correctly implemented. **
+
 <p align="center">
     <img src="docs/media/screenshot.png"/>
 </p>
